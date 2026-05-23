@@ -1,4 +1,4 @@
-# Spotify → macOS Music Playlist Transferer
+# Spotify → MacOS Music Playlist Transferer
 
 Transfers Spotify playlists into the macOS Music app by fuzzy-matching tracks against your local library.
 
