@@ -35,6 +35,16 @@ struct ContentView: View {
             SettingsView()
                 .environmentObject(backend)
         }
+        .onChange(of: backend.isReady) { ready in
+            guard ready else { return }
+            Task {
+                if let (hasToken, hasCreds) = try? await backend.getStatus() {
+                    if !hasCreds || !hasToken {
+                        showSettings = true
+                    }
+                }
+            }
+        }
         .onAppear {
             // Make window background transparent so vibrancy shows.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {

@@ -11,6 +11,27 @@ from urllib.parse import parse_qs, urlparse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+# Resolve the CA bundle path before any HTTPS calls.
+# In a PyInstaller --onefile bundle, use sys._MEIPASS directly (most reliable).
+# In dev, use certifi's path from the venv.
+if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+    _CERT = os.path.join(sys._MEIPASS, "certifi", "cacert.pem")
+else:
+    import certifi
+    _CERT = certifi.where()
+
+print(f"[backend] CA bundle: {_CERT} (exists={os.path.exists(_CERT)})", flush=True)
+
+os.environ["SSL_CERT_FILE"] = _CERT
+os.environ["REQUESTS_CA_BUNDLE"] = _CERT
+
+import requests
+_orig_request = requests.Session.request
+def _verified_request(self, method, url, **kwargs):
+    kwargs.setdefault("verify", _CERT)
+    return _orig_request(self, method, url, **kwargs)
+requests.Session.request = _verified_request
+
 from dotenv import load_dotenv
 import transfer
 

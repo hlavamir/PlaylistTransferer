@@ -8,6 +8,7 @@ echo "==> Building Python backend (PyInstaller)..."
 backend/.venv/bin/pyinstaller \
     --onefile \
     --name playlist-backend \
+    --collect-data certifi \
     --distpath dist-backend \
     --workpath build-pyinstaller \
     --specpath build-pyinstaller \

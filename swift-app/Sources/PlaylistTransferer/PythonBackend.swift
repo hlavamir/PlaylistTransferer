@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 enum BackendError: LocalizedError {
     case invalidURL
@@ -24,15 +25,18 @@ final class PythonBackend: ObservableObject {
 
     init() {
         NotificationCenter.default.addObserver(
-            forName: NSNotification.Name("NSApplicationWillTerminateNotification"),
+            forName: NSApplication.willTerminateNotification,
             object: nil, queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in self?.stop() }
+            self?.process?.terminate()
+            self?.process = nil
         }
     }
 
     func start() {
         guard !isReady, process == nil else { return }
+
+        killStaleBackend()
 
         guard let (exe, args) = findExecutable(port: port) else {
             startupError = "Could not find backend or Python. Run from the project directory."
@@ -44,8 +48,13 @@ final class PythonBackend: ObservableObject {
         proc.arguments = args
 
         let stdoutPipe = Pipe()
+        let logPath = (FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".playlist-transferer")
+            .appendingPathComponent("backend.log")).path
+        FileManager.default.createFile(atPath: logPath, contents: nil)
+        let stderrHandle = FileHandle(forWritingAtPath: logPath)
         proc.standardOutput = stdoutPipe
-        proc.standardError = FileHandle.nullDevice
+        proc.standardError = stderrHandle ?? FileHandle.nullDevice
 
         do {
             try proc.run()
@@ -173,6 +182,28 @@ final class PythonBackend: ObservableObject {
         }
         if let msg = dict["error"] as? String { throw BackendError.serverError(msg) }
         return dict
+    }
+
+    // MARK: - Lifecycle helpers
+
+    private func killStaleBackend() {
+        let lsof = Process()
+        lsof.executableURL = URL(fileURLWithPath: "/usr/sbin/lsof")
+        lsof.arguments = ["-ti", "tcp:\(port)"]
+        let pipe = Pipe()
+        lsof.standardOutput = pipe
+        lsof.standardError = FileHandle.nullDevice
+        try? lsof.run()
+        lsof.waitUntilExit()
+        let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        for pidStr in output.split(separator: "\n") {
+            if let pid = Int32(pidStr.trimmingCharacters(in: .whitespaces)) {
+                Foundation.kill(pid, SIGTERM)
+            }
+        }
+        if !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            Thread.sleep(forTimeInterval: 0.4)
+        }
     }
 
     // MARK: - Discovery
