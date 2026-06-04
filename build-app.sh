@@ -31,6 +31,7 @@ mkdir -p "$BUNDLE/Contents/Resources"
 
 cp swift-app/.build/release/PlaylistTransferer "$BUNDLE/Contents/MacOS/"
 cp dist-backend/playlist-backend               "$BUNDLE/Contents/Resources/"
+cp assets/icon.icns                            "$BUNDLE/Contents/Resources/"
 cp swift-app/Info.plist                        "$BUNDLE/Contents/"
 
 echo ""
