@@ -15,9 +15,20 @@ struct SettingsView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Header
-            Text("Settings")
-                .font(.system(size: 18, weight: .semibold))
-                .padding(.bottom, 20)
+            HStack(alignment: .firstTextBaseline, spacing: 0) {
+                Text("Settings")
+                    .font(.system(size: 18, weight: .semibold))
+                Spacer()
+                Text("Unsure what to do? ")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                Button("Read the instructions here") {
+                    NSWorkspace.shared.open(URL(string: "https://github.com/hlavamir/PlaylistTransferer")!)
+                }
+                .buttonStyle(.link)
+                .font(.system(size: 12))
+            }
+            .padding(.bottom, 20)
 
             // Fields
             VStack(alignment: .leading, spacing: 14) {
