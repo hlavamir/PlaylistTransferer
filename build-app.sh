@@ -4,6 +4,12 @@ set -euo pipefail
 
 BUNDLE="dist/PlaylistTransferer.app"
 
+echo "==> Killing any running backend..."
+lsof -ti tcp:17432 | xargs kill -9 2>/dev/null || true
+
+echo "==> Cleaning previous build artifacts..."
+rm -rf dist dist-backend build-pyinstaller
+
 echo "==> Building Python backend (PyInstaller)..."
 backend/.venv/bin/pyinstaller \
     --onefile \
