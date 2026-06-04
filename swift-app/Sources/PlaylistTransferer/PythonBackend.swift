@@ -34,14 +34,14 @@ final class PythonBackend: ObservableObject {
     func start() {
         guard !isReady, process == nil else { return }
 
-        guard let (python, script) = findPythonAndScript() else {
-            startupError = "Could not find backend.py or Python. Run from the project directory."
+        guard let (exe, args) = findExecutable(port: port) else {
+            startupError = "Could not find backend or Python. Run from the project directory."
             return
         }
 
         let proc = Process()
-        proc.executableURL = URL(fileURLWithPath: python)
-        proc.arguments = [script, "--port", "\(port)"]
+        proc.executableURL = URL(fileURLWithPath: exe)
+        proc.arguments = args
 
         let stdoutPipe = Pipe()
         proc.standardOutput = stdoutPipe
@@ -177,27 +177,32 @@ final class PythonBackend: ObservableObject {
 
     // MARK: - Discovery
 
-    private func findPythonAndScript() -> (python: String, script: String)? {
-        let cwd = FileManager.default.currentDirectoryPath
+    private func findExecutable(port: Int) -> (exe: String, args: [String])? {
+        let fm = FileManager.default
 
+        // Bundled .app: Resources/playlist-backend is a PyInstaller single-file binary.
+        if let resources = Bundle.main.resourcePath {
+            let bundled = "\(resources)/playlist-backend"
+            if fm.fileExists(atPath: bundled) {
+                return (bundled, ["--port", "\(port)"])
+            }
+        }
+
+        // Development: find .venv python + backend.py relative to CWD.
+        let cwd = fm.currentDirectoryPath
         let pythonCandidates = [
             "\(cwd)/../.venv/bin/python3",
             "\(cwd)/.venv/bin/python3",
             "/usr/bin/python3",
         ]
-        let python = pythonCandidates.first {
-            FileManager.default.fileExists(atPath: $0)
-        } ?? "python3"
+        let python = pythonCandidates.first { fm.fileExists(atPath: $0) } ?? "python3"
 
-        let scriptCandidates = [
-            "\(cwd)/../backend.py",
-            "\(cwd)/backend.py",
-        ]
-        guard let script = scriptCandidates.first(where: {
-            FileManager.default.fileExists(atPath: $0)
-        }) else { return nil }
+        let scriptCandidates = ["\(cwd)/../backend.py", "\(cwd)/backend.py"]
+        guard let script = scriptCandidates.first(where: { fm.fileExists(atPath: $0) }) else {
+            return nil
+        }
 
-        return (python, script)
+        return (python, [script, "--port", "\(port)"])
     }
 }
 
