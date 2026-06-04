@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 struct ResultsView: View {
     let result: ImportResult
@@ -109,17 +110,48 @@ private struct TrackRow: View {
     let detail: String
     let detailColor: Color
 
+    @State private var isHovered = false
+    @State private var copied = false
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(primary)
-                .font(.system(size: 12, design: .monospaced))
-                .lineLimit(1)
-            Text(detail)
-                .font(.system(size: 11, design: .monospaced))
-                .foregroundStyle(detailColor.opacity(0.75))
-                .lineLimit(1)
+        HStack(alignment: .center, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(primary)
+                    .font(.system(size: 12, design: .monospaced))
+                    .lineLimit(1)
+                Text(detail)
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(detailColor.opacity(0.75))
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Button {
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(primary, forType: .string)
+                copied = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { copied = false }
+            } label: {
+                Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                    .font(.system(size: 11))
+                    .foregroundStyle(copied ? .green : .secondary)
+                    .frame(width: 20, height: 20)
+                    .animation(.default, value: copied)
+            }
+            .buttonStyle(.plain)
+            .opacity(isHovered ? 1 : 0)
         }
-        .padding(.horizontal, 36)
-        .padding(.vertical, 3)
+        .padding(.leading, 36)
+        .padding(.trailing, 12)
+        .padding(.vertical, 4)
+        .background(
+            RoundedRectangle(cornerRadius: 6)
+                .fill(Color.primary.opacity(isHovered ? 0.05 : 0))
+                .padding(.horizontal, 8)
+        )
+        .contentShape(Rectangle())
+        .animation(.easeInOut(duration: 0.12), value: isHovered)
+        .onHover { isHovered = $0 }
     }
 }
