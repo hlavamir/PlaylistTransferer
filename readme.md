@@ -1,93 +1,107 @@
-# Spotify → MacOS Music Playlist Transferer
+# Spotify -> macOS Music Playlist Transferer
 
 Transfers Spotify playlists into the macOS Music app by fuzzy-matching tracks against your local library.
 
-## How it works?
-Paste a Spotify playlist URL when prompted and the app will:
+## How it works
 
-- Fetch all tracks from the playlist
+Paste a Spotify playlist URL into the app and it will:
+
+- Fetch all tracks from the Spotify playlist
 - Scan your local Music library
 - Fuzzy-match tracks by title and artist
 - Create a playlist inside a **Spotify** folder in the Music app
-- Report matched tracks, not-found tracks with their closest local match, and low-confidence matches to verify manually
+- Report matched tracks, not-found tracks, and low-confidence matches to verify manually
 
 ---
 
-## Running the compiled app
+## Architecture
 
-The compiled app lives in the `dist/PlaylistTransferer` folder or at https://github.com/hlavamir/PlaylistTransferer/releases
+The app has two components:
 
-No Python or any other dependency required.
+- **SwiftUI frontend** (`swift-app/`) — native macOS GUI built with SwiftUI
+- **Python backend** (`backend/`) — handles Spotify API calls, fuzzy matching, and Music app control via AppleScript
 
-## First launch 
+The Swift app launches the Python backend as a subprocess on startup and communicates with it over a local HTTP connection. When distributed as a standalone `.app`, the Python backend is bundled as a self-contained binary using PyInstaller — no Python installation required on the target machine.
+
+---
+
+## Using the app
+
+### Download
+
+Grab the latest `PlaylistTransferer.app` from [Releases](https://github.com/hlavamir/PlaylistTransferer/releases) and drag it to your Applications folder.
+
+**First launch:** macOS will block the app since it is not notarized. Right-click -> Open to bypass Gatekeeper, or run once:
+```bash
+xattr -cr PlaylistTransferer.app
+```
 
 ### Credentials setup
 
-On first launch the app will guide you through a one-time setup:
+On first launch the Settings window opens automatically:
 
 1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) and log in
 2. Click **Create app** — any name and description is fine
 3. Set **Redirect URI** to `https://google.com` and save
-4. Open the app → **Settings** → copy your **Client ID** and **Client Secret**
-5. Paste them into the prompts when the app asks
+4. Copy your **Client ID** and **Client Secret** into the Settings window
 
 Credentials are saved to `~/.playlist-transferer/.env` and reused on every subsequent launch.
 
 ### Spotify authorisation
 
-After entering credentials the app will ask you to authorise with Spotify once:
+After saving credentials, authorise the app with Spotify once:
 
-1. Open the printed URL in your browser and click **Agree**
-2. The browser redirects to Google — that's expected
+1. Click **Open Spotify Authorization Page** in Settings — your browser opens
+2. Click **Agree** — the browser redirects to Google (that is expected)
 3. Copy the full URL from the address bar (e.g. `https://www.google.com/?code=AQ...`)
-4. Paste it back into the terminal
+4. Paste it into the **Authorization Redirect URL** field and click **Save**
 
 The token is cached at `~/.playlist-transferer/.spotify-token` and reused on future runs.
 
 ---
 
-## Python setup
-
-The tool is open source, feel free to fork the repository and update the code to fit your own needs. Below is a small setup guide.
+## Building from source
 
 ### Prerequisites
 
-- [pyenv](https://github.com/pyenv/pyenv) with Python 3.12.9 (or newer) installed
+- macOS 13 or later
+- Xcode Command Line Tools (`xcode-select --install`)
+- [pyenv](https://github.com/pyenv/pyenv) with Python 3.12 installed
 
-### Install
-
-```bash
-pyenv local 3.12.9
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### Run from source
+### Setup
 
 ```bash
-source .venv/bin/activate
-python app.py
+cd backend
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
 
-### Configure credentials
-
-See First launch chapter above.
-
-### Rebuild the compiled app
+### Build the app
 
 ```bash
-source .venv/bin/activate
-pyinstaller PlaylistTransferer.spec
+./build-app.sh
 ```
 
-Output lands in `dist/PlaylistTransferer`.
+This will:
+1. Kill any running backend instance
+2. Clean previous build artifacts
+3. Bundle the Python backend into a single binary with PyInstaller
+4. Build the Swift frontend in release mode
+5. Assemble `dist/PlaylistTransferer.app`
+
+### Run from source (development)
+
+```bash
+cd swift-app
+swift run
+```
+
+The Swift app will automatically find and launch `backend/.venv/bin/python3` with `backend/backend.py`.
 
 ---
 
 ## Support the App 🍺
-
-Did the app save you some time and effort? Would you like to support any future development? Consider buying me a beer (or coffee).
+Did the app save you some time and effort? Would you like to support any future development? Consider buying me a beer (or a coffee).
 
 → https://ko-fi.com/zeys_hlvmr
 
