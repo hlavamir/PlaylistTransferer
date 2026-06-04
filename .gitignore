@@ -1,7 +1,17 @@
+# Python
 .venv/
 .env
 .cache
-.DS_Store
-build/
-*.spec
 __pycache__/
+
+# PyInstaller
+dist/
+build/
+
+# Swift / SPM
+swift-app/.build/
+*.xcodeproj/
+*.xcworkspace/
+
+# macOS
+.DS_Store
