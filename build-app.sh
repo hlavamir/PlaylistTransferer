@@ -5,13 +5,13 @@ set -euo pipefail
 BUNDLE="dist/PlaylistTransferer.app"
 
 echo "==> Building Python backend (PyInstaller)..."
-.venv/bin/pyinstaller \
+backend/.venv/bin/pyinstaller \
     --onefile \
     --name playlist-backend \
     --distpath dist-backend \
     --workpath build-pyinstaller \
     --specpath build-pyinstaller \
-    backend.py
+    backend/backend.py
 
 echo "==> Building Swift app (release)..."
 swift build -c release --package-path swift-app

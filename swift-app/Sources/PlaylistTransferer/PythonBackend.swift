@@ -188,16 +188,15 @@ final class PythonBackend: ObservableObject {
             }
         }
 
-        // Development: find .venv python + backend.py relative to CWD.
+        // Development: find backend/.venv python + backend/backend.py relative to CWD.
         let cwd = fm.currentDirectoryPath
         let pythonCandidates = [
-            "\(cwd)/../.venv/bin/python3",
-            "\(cwd)/.venv/bin/python3",
+            "\(cwd)/../backend/.venv/bin/python3",
             "/usr/bin/python3",
         ]
         let python = pythonCandidates.first { fm.fileExists(atPath: $0) } ?? "python3"
 
-        let scriptCandidates = ["\(cwd)/../backend.py", "\(cwd)/backend.py"]
+        let scriptCandidates = ["\(cwd)/../backend/backend.py"]
         guard let script = scriptCandidates.first(where: { fm.fileExists(atPath: $0) }) else {
             return nil
         }
