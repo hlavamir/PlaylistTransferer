@@ -1,13 +1,18 @@
 # Python
 .venv/
+backend/.venv/
 .env
 .cache
 __pycache__/
 
 # PyInstaller
+dist/
 build/
 dist-backend/
 build-pyinstaller/
+
+# Built app bundles
+*.app/
 
 # Swift / SPM
 swift-app/.build/
