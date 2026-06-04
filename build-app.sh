@@ -1,10 +1,10 @@
 #!/bin/bash
-# Builds PlaylistTransferer.app — bundles the SwiftUI frontend and PyInstaller backend.
+# Builds PlaylistTransferer.app -- bundles the SwiftUI frontend and PyInstaller backend.
 set -euo pipefail
 
-BUNDLE="PlaylistTransferer.app"
+BUNDLE="dist/PlaylistTransferer.app"
 
-echo "→ Building Python backend (PyInstaller)…"
+echo "==> Building Python backend (PyInstaller)..."
 .venv/bin/pyinstaller \
     --onefile \
     --name playlist-backend \
@@ -13,10 +13,11 @@ echo "→ Building Python backend (PyInstaller)…"
     --specpath build-pyinstaller \
     backend.py
 
-echo "→ Building Swift app (release)…"
+echo "==> Building Swift app (release)..."
 swift build -c release --package-path swift-app
 
-echo "→ Assembling $BUNDLE…"
+echo "==> Assembling ${BUNDLE}..."
+mkdir -p dist
 rm -rf "$BUNDLE"
 mkdir -p "$BUNDLE/Contents/MacOS"
 mkdir -p "$BUNDLE/Contents/Resources"
@@ -26,10 +27,7 @@ cp dist-backend/playlist-backend               "$BUNDLE/Contents/Resources/"
 cp swift-app/Info.plist                        "$BUNDLE/Contents/"
 
 echo ""
-echo "✓  $BUNDLE is ready."
+echo "Done: ${BUNDLE}"
 echo ""
-echo "   First launch: right-click → Open (Gatekeeper will block double-click"
-echo "   on unsigned apps — this is expected for apps built outside the App Store)."
-echo ""
-echo "   Or bypass once with:"
-echo "     xattr -cr $BUNDLE"
+echo "First launch: right-click -> Open (Gatekeeper blocks unsigned apps)."
+echo "Or clear quarantine once with:  xattr -cr ${BUNDLE}"
