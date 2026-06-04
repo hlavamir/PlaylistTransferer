@@ -15,7 +15,7 @@ Paste a Spotify playlist URL when prompted and the app will:
 
 ## Running the compiled app
 
-The compiled app lives in the `dist/PlaylistTransferer` folder or at https://github.com/hlavamir/PlaylistTransferer/releases/tag/current
+The compiled app lives in the `dist/PlaylistTransferer` folder or at https://github.com/hlavamir/PlaylistTransferer/releases
 
 No Python or any other dependency required.
 
