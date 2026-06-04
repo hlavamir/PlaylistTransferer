@@ -1,14 +1,27 @@
-# Spotify → macOS Music Playlist Transferer
+# Spotify → MacOS Music Playlist Transferer
 
 Transfers Spotify playlists into the macOS Music app by fuzzy-matching tracks against your local library.
+
+## How it works?
+Paste a Spotify playlist URL when prompted and the app will:
+
+- Fetch all tracks from the playlist
+- Scan your local Music library
+- Fuzzy-match tracks by title and artist
+- Create a playlist inside a **Spotify** folder in the Music app
+- Report matched tracks, not-found tracks with their closest local match, and low-confidence matches to verify manually
 
 ---
 
 ## Running the compiled app
 
-The compiled app lives at `dist/PlaylistTransferer`. No Python or any other dependency required.
+The compiled app lives in the `dist/PlaylistTransferer` folder or at https://github.com/hlavamir/PlaylistTransferer/releases/tag/current
 
-### First launch — credential setup
+No Python or any other dependency required.
+
+## First launch 
+
+### Credentials setup
 
 On first launch the app will guide you through a one-time setup:
 
@@ -20,7 +33,7 @@ On first launch the app will guide you through a one-time setup:
 
 Credentials are saved to `~/.playlist-transferer/.env` and reused on every subsequent launch.
 
-### First launch — Spotify authorisation
+### Spotify authorisation
 
 After entering credentials the app will ask you to authorise with Spotify once:
 
@@ -31,25 +44,15 @@ After entering credentials the app will ask you to authorise with Spotify once:
 
 The token is cached at `~/.playlist-transferer/.spotify-token` and reused on future runs.
 
-### Usage
-
-Paste a Spotify playlist URL when prompted and the app will:
-
-- Fetch all tracks from the playlist
-- Scan your local Music library
-- Fuzzy-match tracks by title and artist
-- Create a playlist inside a **Spotify** folder in the Music app
-- Report matched tracks, not-found tracks with their closest local match, and low-confidence matches to verify manually
-
-After each import you'll be asked whether to import another playlist.
-
 ---
 
-## Repository setup
+## Python setup
+
+The tool is open source, feel free to fork the repository and update the code to fit your own needs. Below is a small setup guide.
 
 ### Prerequisites
 
-- [pyenv](https://github.com/pyenv/pyenv) with Python 3.12.9 installed
+- [pyenv](https://github.com/pyenv/pyenv) with Python 3.12.9 (or newer) installed
 
 ### Install
 
@@ -60,16 +63,16 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Configure credentials
-
-See First launch chapter above.
-
 ### Run from source
 
 ```bash
 source .venv/bin/activate
 python transfer.py
 ```
+
+### Configure credentials
+
+See First launch chapter above.
 
 ### Rebuild the compiled app
 
@@ -79,6 +82,16 @@ pyinstaller --onefile --name "PlaylistTransferer" --console transfer.py
 ```
 
 Output lands in `dist/PlaylistTransferer`.
+
+---
+
+## Support the App 🍺
+
+Did the app save you some time and effort? Would you like to support any future development? Consider buying me a beer (or coffee).
+
+→ https://ko-fi.com/zeys_hlvmr
+
+Thanks! ❤️
 
 ---
 

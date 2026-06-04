@@ -155,8 +155,52 @@ def create_playlist(name: str, folder: str = SPOTIFY_FOLDER) -> None:
         end if
         set theFolder to (first folder playlist whose name is "{safe_folder}")
         if not (exists (some user playlist whose name is "{safe_name}")) then
-            make new user playlist with properties {{name:"{safe_name}", parent:theFolder}}
+            set newPlaylist to make new user playlist with properties {{name:"{safe_name}"}}
+            move newPlaylist to theFolder
         end if
+    end tell
+    """
+    _run_applescript(script)
+
+
+def playlist_exists(name: str) -> bool:
+    safe_name = name.replace('"', '\\"')
+    script = f"""
+    tell application "Music"
+        return exists (some user playlist whose name is "{safe_name}")
+    end tell
+    """
+    return _run_applescript(script).strip() == "true"
+
+
+def get_playlist_track_keys(playlist_name: str) -> set[tuple[str, str]]:
+    safe_name = playlist_name.replace('"', '\\"')
+    script = f"""
+    tell application "Music"
+        set trackList to {{}}
+        repeat with t in (every track of user playlist "{safe_name}")
+            set end of trackList to (name of t) & "|||" & (artist of t)
+        end repeat
+        set AppleScript's text item delimiters to linefeed
+        set output to trackList as string
+        set AppleScript's text item delimiters to ""
+        return output
+    end tell
+    """
+    result = _run_applescript(script)
+    keys: set[tuple[str, str]] = set()
+    for line in result.strip().splitlines():
+        parts = line.split("|||", 1)
+        if len(parts) == 2:
+            keys.add((parts[0].strip(), parts[1].strip()))
+    return keys
+
+
+def clear_playlist(playlist_name: str) -> None:
+    safe_name = playlist_name.replace('"', '\\"')
+    script = f"""
+    tell application "Music"
+        delete every track of user playlist "{safe_name}"
     end tell
     """
     _run_applescript(script)
@@ -268,16 +312,40 @@ def transfer_playlist(url: str) -> None:
         else:
             not_found.append((sp_track, score, closest))
 
+    mode = "new"
+    if playlist_exists(playlist_name):
+        print(_c(f"\nPlaylist '{playlist_name}' already exists in Music.", _YELLOW))
+        while True:
+            choice = input(_c("  [a] Extend with new tracks  [b] Replace entirely: ", _BOLD)).strip().lower()
+            if choice in ("a", "b"):
+                mode = "extend" if choice == "a" else "replace"
+                break
+            print("  Please enter 'a' or 'b'.")
+
     print(_c(f"\nCreating playlist '{playlist_name}' in Music…", _CYAN))
     create_playlist(playlist_name)
-    for sp_track, local_track, _ in matched:
+
+    if mode == "replace":
+        clear_playlist(playlist_name)
+        tracks_to_add = matched
+    elif mode == "extend":
+        existing = get_playlist_track_keys(playlist_name)
+        tracks_to_add = [(sp, loc, s) for sp, loc, s in matched if (loc.title, loc.artist) not in existing]
+        skipped = len(matched) - len(tracks_to_add)
+        if skipped:
+            print(_c(f"  Skipping {skipped} track(s) already in the playlist.", _DIM))
+    else:
+        tracks_to_add = matched
+
+    for sp_track, local_track, _ in tracks_to_add:
         add_track_to_playlist(playlist_name, local_track.title, local_track.artist)
 
     # ── Report ────────────────────────────────────────────────────────────────
     print(f"\n{'─'*60}")
     ratio = len(matched) / len(spotify_tracks) if spotify_tracks else 1
     summary_colour = _GREEN if ratio >= 0.8 else _YELLOW if ratio >= 0.5 else _RED
-    print(_c(f"Done.  {len(matched)}/{len(spotify_tracks)} tracks added.", _BOLD, summary_colour))
+    added_label = f"{len(tracks_to_add)} added" if mode in ("extend", "replace") else f"{len(matched)} added"
+    print(_c(f"Done.  {added_label} / {len(spotify_tracks)} tracks in playlist.", _BOLD, summary_colour))
 
     if not_found:
         print(_c(f"\n{len(not_found)} track(s) not found in local library:", _RED))
