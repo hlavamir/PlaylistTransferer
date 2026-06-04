@@ -67,7 +67,7 @@ pip install -r requirements.txt
 
 ```bash
 source .venv/bin/activate
-python transfer.py
+python app.py
 ```
 
 ### Configure credentials
@@ -78,7 +78,7 @@ See First launch chapter above.
 
 ```bash
 source .venv/bin/activate
-pyinstaller --onefile --name "PlaylistTransferer" --console transfer.py
+pyinstaller PlaylistTransferer.spec
 ```
 
 Output lands in `dist/PlaylistTransferer`.

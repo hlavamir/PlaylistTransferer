@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 import unicodedata
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import spotipy
@@ -51,7 +52,49 @@ class Track:
 
 # ── Spotify ───────────────────────────────────────────────────────────────────
 
-def fetch_spotify_playlist(url: str) -> tuple[str, list[Track]]:
+def has_valid_token() -> bool:
+    client_id = os.environ.get("SPOTIFY_CLIENT_ID")
+    client_secret = os.environ.get("SPOTIFY_CLIENT_SECRET")
+    if not client_id or not client_secret:
+        return False
+    auth_manager = SpotifyOAuth(
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_uri=os.environ.get("SPOTIFY_REDIRECT_URI", "https://google.com"),
+        scope="playlist-read-private playlist-read-collaborative",
+        open_browser=False,
+        cache_path=os.path.join(_CONFIG_DIR, ".spotify-token"),
+    )
+    token = auth_manager.get_cached_token()
+    return token is not None and not auth_manager.is_token_expired(token)
+
+
+def get_auth_url(client_id: str, client_secret: str) -> str:
+    auth_manager = SpotifyOAuth(
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_uri="https://google.com",
+        scope="playlist-read-private playlist-read-collaborative",
+        open_browser=False,
+        cache_path=os.path.join(_CONFIG_DIR, ".spotify-token"),
+    )
+    return auth_manager.get_authorize_url()
+
+
+def exchange_token(client_id: str, client_secret: str, redirect_response: str) -> None:
+    auth_manager = SpotifyOAuth(
+        client_id=client_id,
+        client_secret=client_secret,
+        redirect_uri="https://google.com",
+        scope="playlist-read-private playlist-read-collaborative",
+        open_browser=False,
+        cache_path=os.path.join(_CONFIG_DIR, ".spotify-token"),
+    )
+    code = auth_manager.parse_response_code(redirect_response)
+    auth_manager.get_access_token(code, check_cache=False)
+
+
+def fetch_spotify_playlist(url: str, interactive: bool = True) -> tuple[str, list[Track]]:
     client_id = os.environ.get("SPOTIFY_CLIENT_ID")
     client_secret = os.environ.get("SPOTIFY_CLIENT_SECRET")
     if not client_id or not client_secret:
@@ -71,6 +114,8 @@ def fetch_spotify_playlist(url: str) -> tuple[str, list[Track]]:
     )
 
     if not auth_manager.get_cached_token():
+        if not interactive:
+            raise RuntimeError("No valid Spotify token cached. Please authorise in Settings.")
         auth_url = auth_manager.get_authorize_url()
         print(f"\nOpen this URL in your browser to authorise:\n\n  {auth_url}\n")
         print("After authorising, your browser will show an error — that's expected.")
@@ -286,6 +331,56 @@ def find_match(
     if best_track and best_score >= MATCH_THRESHOLD:
         return best_track, best_score, None
     return None, best_score, best_track  # best_track is the closest miss
+
+
+# ── GUI-callable transfer ─────────────────────────────────────────────────────
+
+def run_transfer_from_fetched(
+    playlist_name: str,
+    spotify_tracks: list[Track],
+    mode: str,
+    log: Callable[[str], None] = print,
+) -> dict:
+    log("Scanning local Music library…")
+    local_tracks = fetch_local_tracks()
+    log(f"  {len(local_tracks)} local tracks found")
+
+    index = build_index(local_tracks)
+    matched: list[tuple[Track, Track, float]] = []
+    not_found: list[tuple[Track, float, Track | None]] = []
+
+    log("Matching tracks…")
+    for sp_track in spotify_tracks:
+        local, score, closest = find_match(sp_track, index)  # type: ignore[arg-type]
+        if local:
+            matched.append((sp_track, local, score))
+        else:
+            not_found.append((sp_track, score, closest))
+
+    log(f"Creating playlist '{playlist_name}'…")
+    create_playlist(playlist_name)
+
+    if mode == "replace":
+        clear_playlist(playlist_name)
+        tracks_to_add = matched
+    elif mode == "extend":
+        existing = get_playlist_track_keys(playlist_name)
+        tracks_to_add = [(sp, loc, s) for sp, loc, s in matched if (loc.title, loc.artist) not in existing]
+    else:
+        tracks_to_add = matched
+
+    log(f"Adding {len(tracks_to_add)} tracks…")
+    for _, local_track, _ in tracks_to_add:
+        add_track_to_playlist(playlist_name, local_track.title, local_track.artist)
+
+    return {
+        "playlist_name": playlist_name,
+        "total": len(spotify_tracks),
+        "matched": len(matched),
+        "added": len(tracks_to_add),
+        "not_found": not_found,
+        "low_confidence": [(sp, loc, s) for sp, loc, s in matched if s < 94],
+    }
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
