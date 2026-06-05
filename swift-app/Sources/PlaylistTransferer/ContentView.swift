@@ -23,6 +23,7 @@ struct ContentView: View {
                     .transition(.opacity.combined(with: .move(edge: .trailing)))
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(.easeInOut(duration: 0.22), value: screenTag)
         .overlay(alignment: .topTrailing) {
             if case .main = screen {

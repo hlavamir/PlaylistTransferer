@@ -50,19 +50,22 @@ struct MainView: View {
                 }
 
                 Spacer()
-
-                if !backend.isReady && backend.startupError == nil {
-                    HStack(spacing: 6) {
-                        ProgressView().scaleEffect(0.7)
-                        Text("Starting backend…")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.tertiary)
-                    }
-                    .padding(.bottom, 14)
-                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.horizontal, 40)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .overlay(alignment: .bottom) {
+            if !backend.isReady && backend.startupError == nil {
+                HStack(spacing: 6) {
+                    ProgressView().scaleEffect(0.7)
+                    Text("Starting backend…")
+                        .font(.system(size: 11))
+                        .foregroundStyle(.tertiary)
+                }
+                .padding(.bottom, 14)
+                .allowsHitTesting(false)
+            }
         }
         .onAppear { fieldFocused = true }
     }
@@ -128,18 +131,20 @@ struct MainView: View {
 
 private struct PulseBackground: View {
     var body: some View {
-        ZStack {
-            RadialGradient(
-                colors: [Color.primary.opacity(0.08), Color.clear],
-                center: .center,
-                startRadius: 0,
-                endRadius: 240
-            )
-            ForEach(0..<3, id: \.self) { i in
-                PulseRing(delay: Double(i) * 2.0)
+        GeometryReader { _ in
+            ZStack {
+                RadialGradient(
+                    colors: [Color.primary.opacity(0.08), Color.clear],
+                    center: .center,
+                    startRadius: 0,
+                    endRadius: 240
+                )
+                ForEach(0..<3, id: \.self) { i in
+                    PulseRing(delay: Double(i) * 2.0)
+                }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .allowsHitTesting(false)
     }
 }
